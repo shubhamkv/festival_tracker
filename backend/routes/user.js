@@ -2,10 +2,11 @@ const express = require("express");
 const zod = require("zod");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
+const authMiddleware = require("../middleware");
 
 require("dotenv").config();
 
-const { User } = require("../db");
+const { User, Festival } = require("../db");
 
 const signupBody = zod.object({
   username: zod.string().email(),
@@ -53,3 +54,53 @@ router.post("/signup", async (req, res) => {
     token: token,
   });
 });
+
+const signinBody = zod.object({
+  username: zod.string().email(),
+  password: zod.string(),
+});
+
+router.post("/signin", async (req, res) => {
+  const { success } = signinBody.safeParse(req.body);
+  if (!success) {
+    return res.status(411).json({
+      message: "Invalid inputs",
+    });
+  }
+
+  const user = await User.findOne({
+    username: req.body.username,
+    password: req.body.password,
+  });
+
+  if (user) {
+    const token = jwt.sign(
+      {
+        userId: user._id,
+      },
+      process.env.JWT_SECRET
+    );
+
+    return res.json({
+      token: token,
+    });
+  }
+
+  res.status(411).json({
+    message: "Error while log in!",
+  });
+});
+
+router.get("/festival", authMiddleware, async (req, res) => {
+  try {
+    const festivals = await Festival.find({}, "festivalName description date");
+    res.json(festivals);
+  } catch (err) {
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
+  }
+});
+
+module.exports = router;
