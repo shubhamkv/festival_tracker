@@ -91,7 +91,7 @@ router.post("/signin", async (req, res) => {
   });
 });
 
-router.get("/festival", authMiddleware, async (req, res) => {
+router.get("/festival", async (req, res) => {
   try {
     const festivals = await Festival.find({}, "festivalName description date");
     res.json(festivals);
@@ -99,6 +99,30 @@ router.get("/festival", authMiddleware, async (req, res) => {
     res.status(500).json({
       message: "Server error",
       error: err.message,
+    });
+  }
+});
+
+router.post("/festival", async (req, res) => {
+  try {
+    const { festivalName, description, date } = req.body;
+
+    const festivalDate = new Date(date);
+
+    const newFestival = await Festival.create({
+      festivalName,
+      description,
+      date: festivalDate,
+    });
+
+    res.status(201).json({
+      message: "Festival added!",
+      festival: newFestival,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error adding festival",
+      error,
     });
   }
 });
